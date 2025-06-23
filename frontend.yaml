@@ -52,7 +52,7 @@ spec:
         - image: krishchan3/mysql-custom:${BUILD_NUMBER}
           imagePullPolicy: IfNotPresent
           args: ["--default-authentication-plugin=mysql_native_password"]
-          name: backend
+          name: mysql
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
