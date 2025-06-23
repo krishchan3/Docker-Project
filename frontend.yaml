@@ -50,6 +50,15 @@ spec:
      spec:
         containers:
         - image: krishchan3/mysql-custom:${BUILD_NUMBER}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "redhat123"
+            - name: MYSQL_DATABASE
+              value: "MyUsers"
+            - name: MYSQL_USER
+              value: "admin"
+            - name: MYSQL_PASSWORD
+              value: "admin123"
           imagePullPolicy: IfNotPresent
           args: ["--default-authentication-plugin=mysql_native_password"]
           name: mysql
