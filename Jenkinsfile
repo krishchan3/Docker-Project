@@ -19,14 +19,18 @@ pipeline {
       steps{
         script {
           dockerImage = docker.build registry + ":$BUILD_NUMBER"
+		 // dockerImage = docker.build("${dockerimagename}:${env.BUILD_NUMBER}")
         }
       }
     }
 
     stage('Push Image') {
+	   environment {
+	     registryCredential = 'dockerhublogin'
+		 }
       steps{
         script {
-          docker.withRegistry( "" ) {
+          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
             dockerImage.push()
           }
         }
@@ -48,9 +52,9 @@ pipeline {
       }
     stage('Deploy App') {
       steps {
-        script {
-          kubernetesDeploy(configs: "frontend.yaml", kubeconfigId: "kube")
-        }
+        withCredentials([file(credentialsId: 'kubejenkins', variable: 'KUBECONFIG')]) {
+          sh 'kubectl apply -f frontend.yml'
+		}
       }
     }
 
