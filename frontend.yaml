@@ -60,7 +60,6 @@ spec:
             - name: MYSQL_PASSWORD
               value: "admin123"
           imagePullPolicy: IfNotPresent
-          args: ["--default-authentication-plugin=mysql_native_password"]
           name: mysql
           resources: {}
           terminationMessagePath: /dev/termination-log
