@@ -1,63 +1,89 @@
 pipeline {
+  agent any
 
   environment {
-    registry = "docker.io/krishchan3/testpipeline/flask"
-    registry_mysql = "docker.io/krishchan3/testpipeline/mysql"
-    dockerImage = ""
+    REGISTRY = "krishchan3"
+    FLASK_IMAGE = "krishchan3/flask-app"
+    MYSQL_IMAGE = "krishchan3/mysql-custom"
+    REGISTRY_CREDENTIALS = "dockerhublogin"
+
   }
 
-  agent any
-    stages {
+  stages {
   
-    stage('Checkout Source') {
+    stage('Checkout') {
       steps {
         git 'https://github.com/krishchan3/Docker-Project.git'
       }
     }
-
-    stage('Build image') {
-      steps{
+    
+    stage('Build Flask Image') {
+      steps {
         script {
- //         dockerImage = docker.build registry + ":$BUILD_NUMBER"
-            dockerImage = docker.build("${registry}:${env.BUILD_NUMBER}")
+          docker.build("${FLASK_IMAGE}:${env.BUILD_NUMBER}")
         }
       }
     }
 
-    stage('Push Image') {
-	   environment {
-	     registryCredential = 'dockerhublogin'
-		 }
-      steps{
+   stage('Build MySQL Image') {
+      steps {
         script {
-          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
-            dockerImage.push()
-          }
+          docker.build("${MYSQL_IMAGE}:${env.BUILD_NUMBER}")
         }
       }
     }
 
-    stage('current') {
-      steps{
-        dir("${env.WORKSPACE}/mysql"){
-          sh "pwd"
+   stage('Push to Docker Hub') {
+      steps {
+        script {
+          docker.withRegistry('https://registry.hub.docker.com', REGISTRY_CREDENTIALS) {
+          docker.image("${FLASK_IMAGE}:${env.BUILD_NUMBER}").push()
+          docker.image("${MYSQL_IMAGE}:${env.BUILD_NUMBER}").push()
           }
+        }
       }
    }
-   stage('Build mysql image') {
-     steps{
-       sh 'docker build -t "docker.io/krishchan3/testpipeline/mysql:$BUILD_NUMBER"  "$WORKSPACE"/mysql'
-        sh 'docker push "docker.io/krishchan3/testpipeline/mysql:$BUILD_NUMBER"'
-        }
-      }
-    stage('Deploy App') {
+   
+   stage('Update K8s Deployment YAML') {
       steps {
-        withCredentials([file(credentialsId: 'kubejenkins', variable: 'KUBECONFIG')]) {
-          sh 'kubectl apply -f frontend.yml'
-		}
+        script {
+          // Replace image name in nginx-deploy.yml with the new tag
+          sh """
+            sed -i 's|image: ${FLASK_IMAGE}:.*|image: ${FLASK_IMAGE}:${env.BUILD_NUMBER}|' frontend.yaml
+            sed -i 's|image: ${MYSQL_IMAGE}:.*|image: ${MYSQL_IMAGE}:${env.BUILD_NUMBER}|' frontend.yaml
+            cat frontend.yaml
+          """
+        }
       }
     }
 
+   stage('Deploy App') {
+      steps {
+               withCredentials([file(credentialsId: 'kubejenkins', variable: 'KUBECONFIG')]) {
+               sh 'kubectl apply -f frontend.yaml'
+	    }
+      }
+    }
   }
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
